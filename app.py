@@ -41,22 +41,42 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # Sidebar for Inventory Display
+# Updated Sidebar for Inventory Display & Persistence
 with st.sidebar:
-    st.header("📦 Current Stock")
+    st.header("📦 Inventory Management")
+    
+    # 1. UPLOAD BACKUP (To restore data after a reboot)
+    uploaded_file = st.file_uploader("Restore from Backup", type="json")
+    if uploaded_file is not None:
+        restored_data = json.load(uploaded_file)
+        save_inventory(restored_data)
+        st.success("Inventory Restored!")
+        st.rerun()
+
+    st.divider()
+
+    # 2. VIEW CURRENT STOCK
     items = load_inventory()
     if not items:
         st.info("Your cupboard is empty!")
     else:
         for i, entry in enumerate(items):
-            st.write(f"**{entry['item']}**")
-            st.caption(f"{entry['qty']} {entry['unit']} | Exp: {entry['expiry']}")
-            if st.button(f"Remove {entry['item']}", key=f"del_{i}"):
+            cols = st.columns([3, 1])
+            cols[0].write(f"**{entry['item']}** ({entry['qty']}{entry['unit']})")
+            if cols[1].button("❌", key=f"del_{i}"):
                 items.pop(i)
                 save_inventory(items)
                 st.rerun()
     
     st.divider()
-    st.download_button("Download JSON Backup", json.dumps(items), "inventory.json")
+    
+    # 3. DOWNLOAD BACKUP (Always do this before closing the tab!)
+    st.download_button(
+        label="💾 Download Data Backup",
+        data=json.dumps(items, indent=4),
+        file_name=f"inventory_backup_{datetime.now().strftime('%Y%m%d')}.json",
+        mime="application/json"
+    )
 
 # Chat Interface
 for message in st.session_state.messages:
